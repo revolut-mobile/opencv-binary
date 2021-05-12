@@ -40,6 +40,11 @@ build_3_4_6() {
     clone 4.5.2
 
     # Add xcframework support to opencv 3.4.6
+    #
+    # Xcframework support was added in a later version of OpenCV here: https://github.com/opencv/opencv/pull/18826
+    # The easier way to get an xcframework from an older version of OpenCV is to use
+    # the platforms folder (which contains the necessary scripts for xcframework generation) from
+    # a newer version
     rm -rf "${BUILD_DIR}/3.4.6/platforms"
     cp -rf "${BUILD_DIR}/4.5.2/platforms" "${BUILD_DIR}/3.4.6/platforms"
 
