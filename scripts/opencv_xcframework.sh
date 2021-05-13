@@ -28,7 +28,7 @@ patch_xcframework_remove_symlinks() {
     find "$(pwd)/${OUTPUT_DIR}/opencv2.xcframework" -name '*.framework' -print0 | while read -d $'\0' framework; do
         rm -rf "${TMP_DIR}"
         mv "${framework}" "${TMP_DIR}"
-        rsync -r "${TMP_DIR}/Versions/A/" "${framework}"
+        mv "${TMP_DIR}/Versions/A" "${framework}"
         mv "${framework}/Resources/Info.plist" "${framework}/Info.plist"
         rm -rf "${framework}/Resources"
         rm -rf "${TMP_DIR}"
