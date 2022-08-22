@@ -16,7 +16,7 @@ build_xcframework() {
 
     python3 "${BUILD_DIR}/${VERSION}/platforms/apple/build_xcframework.py" \
         --build_only_specified_archs \
-        --iphoneos_archs arm64,armv7 \
+        --iphoneos_archs arm64 \
         --iphonesimulator_archs arm64,x86_64 \
         --out "${OUTPUT_DIR}" \
         "$@"
@@ -33,6 +33,16 @@ patch_xcframework_remove_symlinks() {
         rm -rf "${framework}/Resources"
         rm -rf "${TMP_DIR}"
     done
+}
+
+# Disable iOS visibility warnings
+# See: https://github.com/opencv/opencv/issues/7565#issuecomment-555549631
+disable_ios_visibility_warnings() {
+    readonly VERSION="${1}"
+    readonly FILE_TO_PATCH="${BUILD_DIR}/${VERSION}/CMakeLists.txt"
+
+    # Add the OPENCV_SKIP_VISIBILITY_HIDDEN to the first line of the CMakeLists.txt file
+    echo -e "SET(OPENCV_SKIP_VISIBILITY_HIDDEN TRUE)\n$(cat ${FILE_TO_PATCH})" > "${FILE_TO_PATCH}"
 }
 
 build_3_4_6() {
@@ -55,6 +65,19 @@ build_3_4_6() {
 build_4_5_2() {
     clone 4.5.2
     build_xcframework 4.5.2
+    patch_xcframework_remove_symlinks
+}
+
+build_4_6_0() {
+    clone 4.6.0
+    disable_ios_visibility_warnings 4.6.0
+
+    # Fix PATH to find python
+    # See: https://github.com/opencv/opencv/issues/21926#issuecomment-1156755364
+    ln -s "$(which python3)" "$(pwd)/${BUILD_DIR}/python"
+    export PATH="$(pwd)/${BUILD_DIR}:${PATH}"
+
+    build_xcframework 4.6.0
     patch_xcframework_remove_symlinks
 }
 
