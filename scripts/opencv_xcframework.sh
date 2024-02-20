@@ -28,7 +28,7 @@ build_xcframework_excluding_modules_4_9_0() {
     # Baseline of which modules to include, obtained from https://github.com/nihui/opencv-mobile/tree/master?tab=readme-ov-file#opencv-modules-included
 
     # Remove below big files that Revolut does not use
-    find "${BUILD_DIR}/${VERSION}/modules/imgproc/src" -maxdepth 1 -type f -name 'imgwarp*' -delete # Delete 691KB
+    find "${BUILD_DIR}/${VERSION}/modules/imgproc/src" -maxdepth 1 -type f -name 'imgwarp*' -delete # Delete 691KB of the final release binary
     
     python3 "${BUILD_DIR}/${VERSION}/platforms/apple/build_xcframework.py" \
         --build_only_specified_archs \
