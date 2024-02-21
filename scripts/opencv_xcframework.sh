@@ -22,6 +22,47 @@ build_xcframework() {
         "$@"
 }
 
+build_xcframework_excluding_modules_4_9_0() {
+    readonly VERSION="4.9.0"
+
+    # Baseline of which modules to include, obtained from https://github.com/nihui/opencv-mobile/tree/master?tab=readme-ov-file#opencv-modules-included
+
+    # Remove below big files that Revolut does not use
+    find "${BUILD_DIR}/${VERSION}/modules/imgproc/src" -maxdepth 1 -type f -name 'imgwarp*' -delete # Delete 691KB of the final release binary
+    
+    python3 "${BUILD_DIR}/${VERSION}/platforms/apple/build_xcframework.py" \
+        --build_only_specified_archs \
+        --iphoneos_archs arm64 \
+        --iphonesimulator_archs arm64,x86_64 \
+        --out "${OUTPUT_DIR}" \
+        `# --without calib3d # Needed by Revolut code` \
+        `# --without core # based on baseline` \
+        --without dnn \
+        `# --without features2d # based on baseline` \
+        `# --without flann # Needed by calib3d` \
+        --without gapi \
+        `# --without highgui # based on baseline` \
+        `# --without imgcodecs # Needed by Revolut code` \
+        `# --without imgproc # based on baseline` \
+        --without java \
+        --without js \
+        `# --without ml # Needed by Incode and IPCheckCapture2` \
+        --without objc \
+        `# --without objdetect # Needed by Incode` \
+        `# --without photo # based on baseline` \
+        --without python \
+        --without stitching \
+        --without ts \
+        `# --without video # based on baseline` \
+        --without videoio \
+        --without world \
+        "$@"
+
+        # Outcome at the time of testing, for a release-type build:
+        # * Before: opencv size is 13.5MB
+        # * After: opencv size is 4MB
+}
+
 # OpenCV builds frameworks with symlinks inside them: remove them here, for clarity
 patch_xcframework_remove_symlinks() {
     readonly TMP_DIR="${OUTPUT_DIR}/tmp_dir"
@@ -78,6 +119,19 @@ build_4_6_0() {
     export PATH="$(pwd)/${BUILD_DIR}:${PATH}"
 
     build_xcframework 4.6.0
+    patch_xcframework_remove_symlinks
+}
+
+build_4_9_0() {
+    clone 4.9.0
+    disable_ios_visibility_warnings 4.9.0
+
+    # Fix PATH to find python
+    # See: https://github.com/opencv/opencv/issues/21926#issuecomment-1156755364
+    ln -s "$(which python3)" "$(pwd)/${BUILD_DIR}/python"
+    export PATH="$(pwd)/${BUILD_DIR}:${PATH}"
+
+    build_xcframework_excluding_modules_4_9_0
     patch_xcframework_remove_symlinks
 }
 
