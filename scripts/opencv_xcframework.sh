@@ -8,6 +8,9 @@ readonly OUTPUT_DIR="${BUILD_DIR}/output"
 clone() {
     readonly VERSION="${1}"
     git clone --branch "${VERSION}" --depth 1 https://github.com/opencv/opencv.git "${BUILD_DIR}/${VERSION}"
+
+    # OpenCV's Apple builder requires a branch name, even for release-tag builds.
+    git -C "${BUILD_DIR}/${VERSION}" switch -c "build-${VERSION}"
 }
 
 build_xcframework() {
@@ -22,15 +25,17 @@ build_xcframework() {
         "$@"
 }
 
-build_xcframework_excluding_modules_4_9_0() {
-    readonly VERSION="4.9.0"
+build_xcframework_excluding_modules() {
+    readonly VERSION="${1}"
+    shift
 
     # Baseline of which modules to include, obtained from https://github.com/nihui/opencv-mobile/tree/master?tab=readme-ov-file#opencv-modules-included
-    
+
     python3 "${BUILD_DIR}/${VERSION}/platforms/apple/build_xcframework.py" \
         --build_only_specified_archs \
         --iphoneos_archs arm64 \
         --iphonesimulator_archs arm64,x86_64 \
+        --iphoneos_deployment_target 15.0 \
         --out "${OUTPUT_DIR}" \
         `# --without calib3d # Needed by Revolut code` \
         `# --without core # based on baseline` \
@@ -44,7 +49,7 @@ build_xcframework_excluding_modules_4_9_0() {
         --without java \
         --without js \
         `# --without ml # Needed by Incode and IPCheckCapture2` \
-        --without objc \
+        `# --without objc # Needed for Swift bindings` \
         `# --without objdetect # Needed by Incode` \
         `# --without photo # based on baseline` \
         --without python \
@@ -67,7 +72,7 @@ patch_xcframework_remove_symlinks() {
         rm -rf "${TMP_DIR}"
         mv "${framework}" "${TMP_DIR}"
         mv "${TMP_DIR}/Versions/A" "${framework}"
-        mv "${framework}/Resources/Info.plist" "${framework}/Info.plist"
+        mv "${framework}/Resources/"* "${framework}/"
         rm -rf "${framework}/Resources"
         rm -rf "${TMP_DIR}"
     done
@@ -128,7 +133,20 @@ build_4_9_0() {
     ln -s "$(which python3)" "$(pwd)/${BUILD_DIR}/python"
     export PATH="$(pwd)/${BUILD_DIR}:${PATH}"
 
-    build_xcframework_excluding_modules_4_9_0
+    build_xcframework_excluding_modules 4.9.0
+    patch_xcframework_remove_symlinks
+}
+
+build_4_10_0() {
+    clone 4.10.0
+    disable_ios_visibility_warnings 4.10.0
+
+    # Fix PATH to find python
+    # See: https://github.com/opencv/opencv/issues/21926#issuecomment-1156755364
+    ln -s "$(which python3)" "$(pwd)/${BUILD_DIR}/python"
+    export PATH="$(pwd)/${BUILD_DIR}:${PATH}"
+
+    build_xcframework_excluding_modules 4.10.0
     patch_xcframework_remove_symlinks
 }
 
